@@ -1,0 +1,43 @@
+pipeline {
+	   agent any
+	   
+	   tools {
+			maven 'maven 3.6.1' 
+	   }
+	   
+	   environment {
+	 
+			NEXUS_VERSION = "nexus3"
+			
+			NEXUS_PROTOCOL = "http"
+			
+			NEXUS_URL = "35.242.198.199:80"
+			
+			NEXUS_REPOSITORY = "myRepo"
+			
+			NEXUS_CREDENTIAL_ID = "nexus"
+		}
+
+	   stages {
+			stage("clone code") {
+				steps {
+					script {
+						echo "clone code"
+					}
+				}
+			}
+			
+			stage("gradle build") {
+				steps {
+					script {
+						echo "gradle stage"
+					}
+				}
+			}
+	   
+			
+			
+	   }
+		
+        
+}
