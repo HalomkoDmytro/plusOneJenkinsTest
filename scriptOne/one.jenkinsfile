@@ -6,6 +6,7 @@ pipeline {
       string(name: 'branch', defaultValue: 'master', description: 'Build from git branch')
       choice(name: 'env', choices: ['DEVELOPMENT', 'PRODUCTIO'], description: 'Deploy to environment')
 	  string(name: 'gradleVersion', defaultValue: '6.5.1')
+	  booleanParam(name: 'skipTest', defaultValue: false, description: 'Skip test')
       booleanParam(name: 'debug', defaultValue: false, description: 'Debug mode')
     }
 
@@ -24,27 +25,38 @@ pipeline {
           }
         }
       }
-      
-      
-      stage("Gradle build") {
+	  
+	  stage("Test") {
         steps{
           script{
-			GRADLE_VERSION = params.gradleVersion
+			println "--- Test ---"
 			if(params.debug) {
-				println "--- BUILD ---"
 				gradle('-v', params.gradleVersion)
 				gradle('task', params.gradleVersion)
 			}
-			gradle("build", "${params.gradleVersion}");
+			if(!params.skipTest) {
+				gradle("clean test", params.gradleVersion);
+			}
+		  }
+        }
+      }
+      
+      
+      stage("Build") {
+        steps{
+          script{
+			println "--- BUILD ---"
+			gradle("clean build", params.gradleVersion);
 		  }
         }
         
       }
       
-	  stage("Deploy to env") {
+	  stage("Publish") {
 		steps {
 		  script {
-			echo '--- deploy to env ---'
+			println "--- Publish ---"
+			
 		  }
 		}
 	  }
@@ -54,5 +66,4 @@ pipeline {
 def gradle(command, version) {
 	def GRADLE_HOME = tool name: "gradle-${version}", type: 'hudson.plugins.gradle.GradleInstallation'
     sh "${GRADLE_HOME}/bin/gradle ${command}"
-    //sh "${tool name: 'gradle-'{version}, type: 'hudson.plugins.gradle.GradleInstallation'}/bin/gradle ${command}"
 }
