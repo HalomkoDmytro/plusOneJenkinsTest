@@ -1,6 +1,12 @@
+/* 
+Pipeline for deploy CDN service
+version 1.0
+*/
+
+def PROFILE
 
 pipeline {
-     agent any
+    agent any
      
     parameters {
       string(name: 'branch', defaultValue: 'master', description: 'Build from git branch')
@@ -12,6 +18,29 @@ pipeline {
 
     stages {
 		
+      stage("Validate") {
+        steps {
+          script {
+			println "--- VALIDATE ---"
+			
+			if(params.debug) {
+				println "Debug mode is ON"
+				println "Git branch: ${params.branch}"
+				println "Deploy to: ${params.env}"
+				println "Use gradle: ${params.gradleVersion}"
+				gradle('-v', params.gradleVersion)
+				println "Skip test: ${params.skipTest}"
+			}
+			
+			if(params.env == 'DEVELOPMENT') {
+				PROFILE = 'development';
+			} else if (params.env == 'PRODUCTIO') {
+				PROFILE = 'production';
+			}
+            
+          }
+        }
+      }
 		
       stage("Checkout") {
         steps {
@@ -20,8 +49,7 @@ pipeline {
             if(params.debug) {
 				println "Try fetch data from repository branch ${params.branch}"
 			}
-            git url: 'https://github.com/HalomkoDmytro/TreeContainer.git', branch: params.branch
-            
+            git url: 'https://git.1plus1.ua/smart/cdn-service', branch: params.branch
           }
         }
       }
@@ -31,25 +59,25 @@ pipeline {
           script{
 			println "--- Test ---"
 			if(params.debug) {
-				gradle('-v', params.gradleVersion)
-				gradle('task', params.gradleVersion)
-			}
-			if(!params.skipTest) {
+				gradle("clean test --debug", params.gradleVersion);
+			} else {
 				gradle("clean test", params.gradleVersion);
 			}
 		  }
         }
       }
       
-      
       stage("Build") {
         steps{
           script{
 			println "--- BUILD ---"
-			gradle("clean build", params.gradleVersion);
+			if(params.debug) {
+				gradle("clean bootJar --debug", params.gradleVersion);
+			} else {
+				gradle("clean bootJar", params.gradleVersion);
+			}
 		  }
         }
-        
       }
       
 	  stage("Publish") {
@@ -57,6 +85,11 @@ pipeline {
 		  script {
 			println "--- Publish ---"
 			
+			// in case we note store our build artifacts in any repository then should 
+			// TODO:
+			// stop cdn-service-0.1 on server
+			// take `cdn-service-0.1.jar` we just built in previous step, from `build\libs\` and publish on server
+			// start our new jar by command: `java -jar -Dspring.profiles.active=${PROFILE} cdn-service-0.1.jar`
 		  }
 		}
 	  }
